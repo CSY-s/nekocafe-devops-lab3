@@ -1,0 +1,135 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nekocafe.fullname" . }}-reservation
+  labels:
+    app.kubernetes.io/name: {{ include "nekocafe.name" . }}
+    app.kubernetes.io/component: reservation
+spec:
+  replicas: {{ .Values.reservation.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: reservation
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "nekocafe.name" . }}
+        app.kubernetes.io/component: reservation
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8080"
+        canary.nekocafe.io/enabled: {{ .Values.canary.enabled | quote }}
+        canary.nekocafe.io/weight: {{ .Values.canary.weight | quote }}
+    spec:
+      containers:
+        - name: reservation
+          image: "{{ .Values.reservation.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.reservation.port }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "nekocafe.fullname" . }}-config
+            - secretRef:
+                name: {{ include "nekocafe.fullname" . }}-secret
+          env:
+            - name: SERVICE_NAME
+              value: reservation
+            - name: PORT
+              value: "8080"
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nekocafe.fullname" . }}-frontend
+  labels:
+    app.kubernetes.io/name: {{ include "nekocafe.name" . }}
+    app.kubernetes.io/component: frontend
+spec:
+  replicas: {{ .Values.frontend.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: frontend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "nekocafe.name" . }}
+        app.kubernetes.io/component: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: "{{ .Values.frontend.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.frontend.port }}
+          env:
+            - name: PORT
+              value: "8080"
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nekocafe.fullname" . }}-member
+  labels:
+    app.kubernetes.io/name: {{ include "nekocafe.name" . }}
+    app.kubernetes.io/component: member
+spec:
+  replicas: {{ .Values.member.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: member
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "nekocafe.name" . }}
+        app.kubernetes.io/component: member
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8080"
+    spec:
+      containers:
+        - name: member
+          image: "{{ .Values.member.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.member.port }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "nekocafe.fullname" . }}-config
+          env:
+            - name: SERVICE_NAME
+              value: member
+            - name: PORT
+              value: "8080"
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

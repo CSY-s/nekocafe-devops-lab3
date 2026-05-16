@@ -1,0 +1,13 @@
+environment: prod
+reservation:
+  replicas: 3
+member:
+  replicas: 3
+frontend:
+  replicas: 2
+canary:
+  enabled: false
+  weight: 0
+ingress:
+  enabled: true
+  host: api.nekocafe.example.com

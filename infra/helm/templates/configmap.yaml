@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nekocafe.fullname" . }}-config
+  labels:
+    app.kubernetes.io/name: {{ include "nekocafe.name" . }}
+data:
+  APP_ENV: {{ .Values.environment | quote }}
+  MEMBER_SERVICE_URL: "http://{{ include "nekocafe.fullname" . }}-member:8080"

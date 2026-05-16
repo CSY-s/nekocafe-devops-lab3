@@ -1,0 +1,10 @@
+environment: staging
+reservation:
+  replicas: 2
+member:
+  replicas: 2
+frontend:
+  replicas: 1
+canary:
+  enabled: true
+  weight: 20

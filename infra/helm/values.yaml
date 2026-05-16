@@ -1,0 +1,36 @@
+environment: dev
+
+image:
+  tag: local
+  pullPolicy: IfNotPresent
+
+reservation:
+  repository: nekocafe/reservation
+  replicas: 2
+  port: 8080
+
+member:
+  repository: nekocafe/member
+  replicas: 2
+  port: 8080
+
+frontend:
+  repository: nekocafe/frontend
+  replicas: 1
+  port: 8080
+
+canary:
+  enabled: false
+  weight: 0
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+ingress:
+  enabled: false
+  host: nekocafe.local

@@ -1,0 +1,91 @@
+services:
+  frontend:
+    build: ./services/frontend
+    image: nekocafe/frontend:local
+    environment:
+      PORT: "8080"
+    ports:
+      - "8080:8080"
+    depends_on:
+      reservation:
+        condition: service_started
+      member:
+        condition: service_started
+    networks:
+      - nekocafe
+
+  reservation:
+    build: ./services/reservation
+    image: nekocafe/reservation:local
+    environment:
+      APP_ENV: local
+      SERVICE_NAME: reservation
+      PORT: "8080"
+      MEMBER_SERVICE_URL: http://member:8080
+      DATABASE_URL: postgresql://nekocafe:nekocafe@postgres:5432/nekocafe
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      member:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - nekocafe
+
+  member:
+    build: ./services/member
+    image: nekocafe/member:local
+    environment:
+      APP_ENV: local
+      SERVICE_NAME: member
+      PORT: "8080"
+    ports:
+      - "8082:8080"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - nekocafe
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: nekocafe
+      POSTGRES_USER: nekocafe
+      POSTGRES_PASSWORD: nekocafe
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nekocafe -d nekocafe"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - nekocafe
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - nekocafe
+
+networks:
+  nekocafe:
+    driver: bridge
+
+volumes:
+  postgres-data:

@@ -1,0 +1,32 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "nekocafe.fullname" . }}
+spec:
+  rules:
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "nekocafe.fullname" . }}-frontend
+                port:
+                  number: 8080
+          - path: /reservations
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "nekocafe.fullname" . }}-reservation
+                port:
+                  number: 8080
+          - path: /members
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "nekocafe.fullname" . }}-member
+                port:
+                  number: 8080
+{{- end }}

@@ -1,0 +1,14 @@
+{
+  "name": "nekocafe-member-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Member service for the NekoCafe DevOps PoC.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node test/member.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

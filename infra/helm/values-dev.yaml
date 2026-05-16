@@ -1,0 +1,10 @@
+environment: dev
+reservation:
+  replicas: 1
+member:
+  replicas: 1
+frontend:
+  replicas: 1
+canary:
+  enabled: true
+  weight: 5

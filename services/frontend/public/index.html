@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NekoCafe 预约系统</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="authScreen" class="auth-screen">
+      <section class="auth-panel">
+        <p class="eyebrow">NekoCafe</p>
+        <h1>预约系统</h1>
+        <p class="muted">请登录账号，或注册一个新账号后继续使用。</p>
+
+        <div class="tabs" role="tablist" aria-label="认证模式">
+          <button class="tab active" type="button" data-auth-mode="login">登录</button>
+          <button class="tab" type="button" data-auth-mode="registerCustomer">注册用户</button>
+          <button class="tab" type="button" data-auth-mode="registerAdmin">注册管理员</button>
+        </div>
+
+        <form id="loginForm" class="auth-form">
+          <label>
+            账号
+            <input name="accountId" value="M001" required />
+          </label>
+          <label>
+            密码
+            <input name="password" type="password" value="123456" required />
+          </label>
+          <button class="primary-button" type="submit">登录</button>
+          <p class="hint">默认用户：M001-M005 / 123456。默认管理员：A001-A002 / admin123。</p>
+        </form>
+
+        <form id="registerCustomerForm" class="auth-form hidden">
+          <label>
+            姓名
+            <input name="name" placeholder="请输入用户姓名" required />
+          </label>
+          <label>
+            密码
+            <input name="password" type="password" minlength="6" placeholder="至少 6 个字符" required />
+          </label>
+          <button class="primary-button" type="submit">创建用户账号</button>
+        </form>
+
+        <form id="registerAdminForm" class="auth-form hidden">
+          <label>
+            姓名
+            <input name="name" placeholder="请输入管理员姓名" required />
+          </label>
+          <label>
+            密码
+            <input name="password" type="password" minlength="6" placeholder="至少 6 个字符" required />
+          </label>
+          <label>
+            邀请码
+            <input name="inviteCode" value="NEKO-ADMIN" required />
+          </label>
+          <button class="primary-button" type="submit">创建管理员账号</button>
+        </form>
+      </section>
+    </div>
+
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">N</span>
+          <div>
+            <strong>NekoCafe</strong>
+            <span>预约管理</span>
+          </div>
+        </div>
+        <nav class="nav" aria-label="主导航">
+          <button class="nav-item active" type="button" data-view="customerView">我的预约</button>
+          <button class="nav-item" type="button" data-view="adminView">管理员</button>
+          <button class="nav-item" type="button" data-view="opsView">运维状态</button>
+        </nav>
+      </aside>
+
+      <main class="workspace">
+        <section class="topbar">
+          <div>
+            <p class="eyebrow">控制台</p>
+            <h1>NekoCafe 预约管理</h1>
+            <p id="sessionText" class="session-text">未登录</p>
+          </div>
+          <div class="topbar-actions">
+            <button id="refreshBtn" class="secondary-button" type="button">刷新</button>
+            <button id="logoutBtn" class="primary-button" type="button">切换账号</button>
+          </div>
+        </section>
+
+        <section class="status-grid" aria-label="系统概览">
+          <article class="metric-card">
+            <span>预约服务</span>
+            <strong id="reservationStatus">检查中</strong>
+            <small>localhost:8081</small>
+          </article>
+          <article class="metric-card">
+            <span>会员服务</span>
+            <strong id="memberStatus">检查中</strong>
+            <small>localhost:8082</small>
+          </article>
+          <article class="metric-card">
+            <span>预约数量</span>
+            <strong id="reservationCount">0</strong>
+            <small id="reservationScope">当前可见记录</small>
+          </article>
+          <article class="metric-card">
+            <span>当前角色</span>
+            <strong id="currentRole">-</strong>
+            <small id="currentAccount">-</small>
+          </article>
+        </section>
+
+        <section id="customerView" class="view active">
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>创建预约</h2>
+                <p>使用当前登录用户账号预约桌位。</p>
+              </div>
+            </div>
+            <form id="reservationForm" class="form-grid">
+              <label>
+                就餐人数
+                <input name="tableSize" type="number" min="1" max="8" value="2" required />
+              </label>
+              <label>
+                到店时间
+                <input name="slot" value="2026-05-20T18:30:00+08:00" required />
+              </label>
+              <label>
+                备注
+                <input name="note" placeholder="靠窗、生日、忌口等" />
+              </label>
+              <button class="primary-button" type="submit">提交预约</button>
+            </form>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>我的会员信息</h2>
+                <p>查看会员等级、积分和优惠券。</p>
+              </div>
+            </div>
+            <div id="memberCard" class="member-card"></div>
+          </article>
+
+          <article class="panel full-row">
+            <div class="panel-header">
+              <div>
+                <h2>我的预约</h2>
+                <p>这里只显示当前登录用户自己的预约。</p>
+              </div>
+            </div>
+            <div id="customerReservationList" class="list"></div>
+          </article>
+        </section>
+
+        <section id="adminView" class="view">
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>预约管理</h2>
+                <p>管理员可以确认、入座、取消或删除预约。</p>
+              </div>
+            </div>
+            <div id="adminReservationList" class="list"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>会员档案</h2>
+                <p>查看当前系统中的全部会员记录。</p>
+              </div>
+            </div>
+            <div id="memberList" class="member-list"></div>
+          </article>
+        </section>
+
+        <section id="opsView" class="view single-view">
+          <article class="panel ops-panel">
+            <div class="panel-header">
+              <div>
+                <h2>运维状态</h2>
+                <p>实验三需要展示的健康检查和指标采集入口。</p>
+              </div>
+            </div>
+            <div class="ops-links">
+              <a href="http://localhost:8081/healthz" target="_blank" rel="noreferrer">预约 healthz</a>
+              <a href="http://localhost:8081/metrics" target="_blank" rel="noreferrer">预约 metrics</a>
+              <a href="http://localhost:8082/healthz" target="_blank" rel="noreferrer">会员 healthz</a>
+              <a href="http://localhost:8082/metrics" target="_blank" rel="noreferrer">会员 metrics</a>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="./app.js"></script>
+  </body>
+</html>

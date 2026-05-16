@@ -1,0 +1,66 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  RELEASE_NAME: nekocafe
+  NAMESPACE: nekocafe-dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: nekocafe-dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.15.4
+
+      - name: Helm lint
+        run: helm lint ./infra/helm
+
+      - name: Deploy to dev
+        run: |
+          helm upgrade --install $RELEASE_NAME ./infra/helm \
+            --namespace $NAMESPACE \
+            --create-namespace \
+            -f ./infra/helm/values-dev.yaml \
+            --set image.tag=${{ github.sha }} \
+            --wait --timeout 5m
+
+      - name: Canary 5 percent
+        run: |
+          helm upgrade --install $RELEASE_NAME ./infra/helm \
+            --namespace $NAMESPACE \
+            -f ./infra/helm/values-dev.yaml \
+            --set canary.enabled=true \
+            --set canary.weight=5 \
+            --set image.tag=${{ github.sha }} \
+            --wait --timeout 5m
+
+      - name: Health Gate
+        run: |
+          echo "Query Prometheus: p95 latency <= 500ms and error rate <= 1%"
+          echo "In the course lab, replace this gate with the real Prometheus query."
+
+      - name: Promote 100 percent
+        run: |
+          helm upgrade --install $RELEASE_NAME ./infra/helm \
+            --namespace $NAMESPACE \
+            -f ./infra/helm/values-dev.yaml \
+            --set canary.enabled=false \
+            --set image.tag=${{ github.sha }} \
+            --wait --timeout 5m
+
+      - name: Auto Rollback
+        if: failure()
+        run: helm rollback $RELEASE_NAME --namespace $NAMESPACE
