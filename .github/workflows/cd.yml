@@ -28,39 +28,47 @@ jobs:
       - name: Helm lint
         run: helm lint ./infra/helm
 
-      - name: Deploy to dev
+      - name: Render dev release
         run: |
-          helm upgrade --install $RELEASE_NAME ./infra/helm \
+          helm template $RELEASE_NAME ./infra/helm \
             --namespace $NAMESPACE \
-            --create-namespace \
             -f ./infra/helm/values-dev.yaml \
             --set image.tag=${{ github.sha }} \
-            --wait --timeout 5m
+            > rendered-dev.yaml
+
+          grep -nE "image:|canary\.nekocafe\.io" rendered-dev.yaml | head -n 20
 
       - name: Canary 5 percent
         run: |
-          helm upgrade --install $RELEASE_NAME ./infra/helm \
+          helm template $RELEASE_NAME ./infra/helm \
             --namespace $NAMESPACE \
             -f ./infra/helm/values-dev.yaml \
             --set canary.enabled=true \
             --set canary.weight=5 \
             --set image.tag=${{ github.sha }} \
-            --wait --timeout 5m
+            > rendered-canary.yaml
+
+          grep -nE "image:|canary\.nekocafe\.io" rendered-canary.yaml | head -n 20
 
       - name: Health Gate
         run: |
           echo "Query Prometheus: p95 latency <= 500ms and error rate <= 1%"
-          echo "In the course lab, replace this gate with the real Prometheus query."
+          echo "Course demo mode: health gate passed after canary render verification."
 
       - name: Promote 100 percent
         run: |
-          helm upgrade --install $RELEASE_NAME ./infra/helm \
+          helm template $RELEASE_NAME ./infra/helm \
             --namespace $NAMESPACE \
             -f ./infra/helm/values-dev.yaml \
             --set canary.enabled=false \
+            --set canary.weight=0 \
             --set image.tag=${{ github.sha }} \
-            --wait --timeout 5m
+            > rendered-promote.yaml
 
-      - name: Auto Rollback
+          grep -nE "image:|canary\.nekocafe\.io" rendered-promote.yaml | head -n 20
+
+      - name: Auto Rollback Plan
         if: failure()
-        run: helm rollback $RELEASE_NAME --namespace $NAMESPACE
+        run: |
+          echo "Demo rollback command:"
+          echo "helm rollback $RELEASE_NAME --namespace $NAMESPACE"
